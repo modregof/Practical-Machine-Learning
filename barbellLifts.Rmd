@@ -1,0 +1,98 @@
+---
+title: "Barbell lift activities analysis"
+---
+We are interested in exploring the relationship between a set of 153 variables resgistered by 6 sensors and the wright or incorrect activity developed by 6 people. Finally five different activities (A,B,C,D,E) in variable *classe*.
+
+## Exploratory Data Analysis:
+We have two data sets:
+One to train the model: 19622 observations of 160 variables
+Another one to test: 20 observations of 160 variables (We use it for the second exercise)
+
+```{r cache = TRUE}
+setwd("C:/Users/Nano/Coursera/Practical Machine Learning/project")
+library(caret)
+training.data <- read.csv("pml-training.csv")
+testing.data <- read.csv("pml-testing.csv")
+
+##summary(training.data)
+```
+
+## Cleaning Data:
+Removing columns with high number of NA and "" reducing the numbre of variables to 53
+
+```{r}
+## Cleaning the training and testing data set
+training.data.fil <- training.data[,-c(1,2,3,4,5,6,7)]
+
+s <- c(0)
+r <- c(0)
+
+for (i in 1:dim(training.data.fil)[2]) {
+  s[i] <- sum(is.na(training.data.fil[,i]))
+}
+training.data.fil <- training.data.fil[,s==0]
+
+for (i in 1:dim(training.data.fil)[2]) {
+  r[i] <- sum(training.data.fil[,i]=="")
+}
+
+training.data.fil <- training.data.fil[,r==0]
+
+## Cleaning the testing data set
+testing.data.fil <- testing.data[,-c(1,2,3,4,5,6,7)]
+
+
+testing.data.fil <- testing.data.fil[,s==0]
+
+testing.data.fil <- testing.data.fil[,r==0]
+
+```
+
+
+## Random Forest Model:
+Chosing random forest as method of the model because is not linear and we have a lot of variables. It's a classification. Also before obtaining the result of the model we can't imagine how this variables are going to influence.
+
+Firstly select the data to train the model. We use 0.7 percent in the training data set. The rest will be use to test the model.
+
+```{r cache = TRUE}
+inTrain <- createDataPartition(y = training.data.fil$classe, p = 0.7,list = FALSE)
+
+Training <- training.data.fil[inTrain,]
+
+Testing <- training.data.fil[-inTrain,]
+```
+
+We use cross validation to control the training with more than one percent increase of performance over Boostrapping.
+
+```{r cache = TRUE}
+activity.rf <- train(classe ~ ., data = Training, method = "rf", 
+                     trControl = trainControl(method = "cv"))
+
+```
+
+These are the results of the model and the most used variables
+```{r cache = TRUE}
+activity.rf
+varImp(activity.rf)
+
+```
+
+We use Accuracy as metric. And the result is quite good 0.992
+
+## Testing the Model:
+We are going to obtain the Accuracy using the testing data set:
+```{r cache = TRUE}
+predictions <- predict (activity.rf, newdata = Testing)
+confusionMatrix(predictions, Testing$classe)
+```
+
+The Accuracy is even better using this data
+
+## Calculating the answers for exercise 2
+```{r cache = TRUE}
+answers <- predict (activity.rf, newdata = testing.data.fil)
+
+answers
+
+```
+
